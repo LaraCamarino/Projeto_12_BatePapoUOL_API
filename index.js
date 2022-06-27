@@ -130,4 +130,28 @@ app.get("/messages", async (request, response) => {
 	}
 });
 
+app.post("/status", async (request, response) => {
+	const user = request.headers.user;
+
+	try {
+		const verifyActiveParticipant = await db.collection("participants").findOne({ name: user });
+		if (!verifyActiveParticipant) {
+			response.status(404).send("Participante inativo.");
+			return;
+		}
+
+		const updateStatus = await db.collection("participants").updateOne({
+			name: user
+		},
+			{
+				$set: { lastStatus: Date.now() }
+			});
+		response.status(200).send("Status do participante atualizado.");
+	}
+	catch (error) {
+		response.status(500).send(error);
+		console.log("Não foi possível atualizar o status.");
+	}
+});
+
 app.listen(5000, () => console.log("Servidor foi iniciado."));
