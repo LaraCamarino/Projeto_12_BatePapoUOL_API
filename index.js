@@ -107,4 +107,27 @@ app.post("/messages", async (request, response) => {
 	}
 });
 
+app.get("/messages", async (request, response) => {
+	const limit = parseInt(request.query.limit);
+	const user = request.headers.user;
+	try {
+		const allMessages = await db.collection("messages").find().toArray();
+		const filteredMessages = allMessages.filter(message => {
+			if (message.from === user || message.to === user || message.to === "Todos") {
+				return message;
+			}
+		});
+		const limitMessages = filteredMessages.slice(-limit);
+
+		if (!limit) {
+			response.status(200).send(filteredMessages);
+			return;
+		}
+		response.status(200).send(limitMessages);
+	}
+	catch (error) {
+		response.status(500).send(error);
+	}
+});
+
 app.listen(5000, () => console.log("Servidor foi iniciado."));
