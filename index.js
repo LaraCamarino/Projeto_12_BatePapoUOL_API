@@ -19,6 +19,11 @@ mongoClient.connect().then(() => {
 const participantSchema = joi.object({
 	name: joi.string().required()
 });
+const messageSchema = joi.object({
+	to: joi.string().required(),
+	text: joi.string().required(),
+	type: joi.string().valid("message").valid("private_message"),
+});
 
 app.post("/participants", async (request, response) => {
 	const { name } = request.body;
@@ -59,6 +64,43 @@ app.get("/participants", async (request, response) => {
 	try {
 		const allParticipants = await db.collection("participants").find().toArray();
 		response.status(200).send(allParticipants);
+	}
+	catch (error) {
+		response.status(500).send(error);
+	}
+});
+
+app.post("/messages", async (request, response) => {
+	const from = request.headers.user;
+	const { to, text, type } = request.body;
+	const message = {
+		to,
+		text,
+		type,
+	};
+	const validation = messageSchema.validate(message, { abortEarly: false });
+	if (validation.error) {
+		console.log(validation.error.details);
+		response.status(422).send(validation.error.details);
+		return;
+	}
+
+	const verifyFromExistingParticipant = await db.collection("participants").findOne({ name: from });
+	if(!verifyFromExistingParticipant) {
+		response.status(422).send("O usuáio não está ativo.");
+		return;
+	}
+
+	try {
+		await db.collection("messages").insertOne({
+			from: from,
+			to: to,
+			text: text,
+			type: type,
+			time: dayjs().format("HH:mm:ss")
+		});
+		response.status(201).send(console.log("Mensagem enviada com sucesso."));
+		return;
 	}
 	catch (error) {
 		response.status(500).send(error);
