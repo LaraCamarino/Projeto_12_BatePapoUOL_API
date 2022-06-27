@@ -193,4 +193,55 @@ app.delete("/messages/:id", async (request, response) => {
 	}
 });
 
+app.put("/messages/:id", async (request, response) => {
+	const id = request.params.id;
+	const from = request.headers.user;
+	const { to, text, type } = request.body;
+	const message = {
+		to,
+		text,
+		type,
+	};
+
+	const validation = messageSchema.validate(message, { abortEarly: false });
+	if (validation.error) {
+		response.status(422).send(validation.error.details);
+		return;
+	}
+
+	const verifyFromExistingParticipant = await db.collection("participants").findOne({ name: from });
+	if (!verifyFromExistingParticipant) {
+		response.status(422).send("O usuáio não está ativo.");
+		return;
+	}
+
+	try {
+		const verifyExistingMessage = await db.collection("messages").findOne({ _id: ObjectId(id) });
+		if (!verifyExistingMessage) {
+			response.status(404).send("A mensagem não existe.");
+			return;
+		}
+		if (verifyExistingMessage.from !== from) {
+			response.status(401).send("O participante não é o dono da mensagem.");
+			return;
+		}
+		await db.collection("messages").updateOne({
+			_id: ObjectId(id)
+		},
+			{
+				$set: {
+					to: to,
+					text: text,
+					type: type,
+					time: dayjs().format("HH:mm:ss")
+				}
+			});
+		response.status(201).send("Mensagem editada com sucesso.");
+		return;
+	}
+	catch (error) {
+		response.status(500).send(error);
+	}
+});
+
 app.listen(5000, () => console.log("Servidor foi iniciado."));
