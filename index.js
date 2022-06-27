@@ -55,4 +55,14 @@ app.post("/participants", async (request, response) => {
 	}
 });
 
+app.get("/participants", async (request, response) => {
+	try {
+		const allParticipants = await db.collection("participants").find().toArray();
+		response.status(200).send(allParticipants);
+	}
+	catch (error) {
+		response.status(500).send(error);
+	}
+});
+
 app.listen(5000, () => console.log("Servidor foi iniciado."));
