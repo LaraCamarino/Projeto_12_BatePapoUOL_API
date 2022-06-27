@@ -154,4 +154,24 @@ app.post("/status", async (request, response) => {
 	}
 });
 
+async function removeInactiveParticipants() {
+	const currentTime = Date.now();
+	const participantsList = await db.collection("participants").find().toArray();
+
+	participantsList.forEach(async item => {
+		if (item.lastStatus + 10000 < currentTime) {
+			await db.collection("participants").deleteOne({ name: item.name })
+			await db.collection("messages").insertOne({
+				from: item.name,
+				to: "Todos",
+				text: "sai da sala...",
+				type: "status",
+				time: dayjs().format("HH:mm:ss")
+			});
+		}
+	})
+}
+
+setInterval(removeInactiveParticipants, 15000);
+
 app.listen(5000, () => console.log("Servidor foi iniciado."));
