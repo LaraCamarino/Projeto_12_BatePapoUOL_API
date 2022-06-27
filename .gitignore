@@ -1,0 +1,6 @@
+node_modules
+assets
+css
+.env
+index.html
+script.js
